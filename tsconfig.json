@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "es2017",            // ✔  ES2015 or newer
+    "downlevelIteration": true,
+    "module": "commonjs",
+    "lib": ["es2017"],             // ✔  includes es2015.iterable
+    "esModuleInterop": true,
+    "strict": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true
+  },
+  "include": ["*.ts"]
+}
