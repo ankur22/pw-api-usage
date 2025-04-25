@@ -3,30 +3,28 @@ import fs from 'fs';
 import path from 'path';
 
 /* ---------------------------------------------------------------
-   Playwright‑only API usage report
+   Playwright API usage grouped by *type* (Page, Locator, …)
 ----------------------------------------------------------------*/
-interface ApiUsage { count: number; }
-const apiUsage = new Map<string, ApiUsage>();
 
+// Map< ClassName, Map< MethodName, count > >
+const usage = new Map<string, Map<string, number>>();
 const PLAYWRIGHT_PATH = /node_modules[\\/](?:@playwright|playwright)/i;
 
-function record(name: string) {
-  const e = apiUsage.get(name) ?? { count: 0 };
-  e.count++;
-  apiUsage.set(name, e);
-}
-
-/* Symbol/type helpers */
+/* helpers -------------------------------------------------------*/
 function fromPlaywright(sym?: ts.Symbol): boolean {
-  if (!sym) return false;
-  return (sym.declarations ?? []).some(d => PLAYWRIGHT_PATH.test(d.getSourceFile().fileName));
+  return !!sym && (sym.declarations ?? []).some(d => PLAYWRIGHT_PATH.test(d.getSourceFile().fileName));
 }
 function typeIsPlaywright(t: ts.Type): boolean {
   return fromPlaywright(t.getSymbol() ?? t.aliasSymbol);
 }
+function addUsage(cls: string, method: string) {
+  const byClass = usage.get(cls) ?? new Map<string, number>();
+  byClass.set(method, (byClass.get(method) ?? 0) + 1);
+  usage.set(cls, byClass);
+}
 
 /* ---------------------------------------------------------------
-   Analyse a single test file
+   Analyse one spec file
 ----------------------------------------------------------------*/
 function analyseFile(file: string) {
   const program = ts.createProgram([file], { allowJs: true, checkJs: true });
@@ -34,49 +32,52 @@ function analyseFile(file: string) {
   const src     = program.getSourceFile(file);
   if (!src) return;
 
-  const walk = (n: ts.Node): void => {
-    // method calls – either obj.method() or plain func()
+  const visit = (n: ts.Node): void => {
     if (ts.isCallExpression(n)) {
       // obj.method()
       if (ts.isPropertyAccessExpression(n.expression) || ts.isPropertyAccessChain(n.expression)) {
-        const pa        = n.expression;
-        const recvType  = checker.getTypeAtLocation(pa.expression);
+        const pa       = n.expression;
+        const recvType = checker.getTypeAtLocation(pa.expression);
         if (typeIsPlaywright(recvType)) {
           const classNm = checker.typeToString(recvType);
-          record(`${classNm}.${pa.name.getText(src)}`);
+          addUsage(classNm, pa.name.getText(src));
         }
       }
-      // func()
+      // plainFunc()
       else if (ts.isIdentifier(n.expression)) {
         const sym = checker.getSymbolAtLocation(n.expression);
-        if (fromPlaywright(sym)) record(n.expression.text);
+        if (fromPlaywright(sym)) addUsage('(functions)', n.expression.text);
       }
-    }
-    // standalone property access – e.g. devices['Pixel 5']
-    else if (ts.isPropertyAccessExpression(n)) {
+    } else if (ts.isPropertyAccessExpression(n)) {
+      // e.g. devices['Pixel 5'] – treat lhs as a PW value
       const lhsSym = checker.getSymbolAtLocation(n.expression);
-      if (fromPlaywright(lhsSym)) record(n.getText(src));
+      if (fromPlaywright(lhsSym)) addUsage('(properties)', n.getText(src));
     }
-    ts.forEachChild(n, walk);
+    ts.forEachChild(n, visit);
   };
-  walk(src);
+  visit(src);
 }
 
 /* ---------------------------------------------------------------
-   Recursively scan the specs folder and print the report
+   Walk the specs directory
 ----------------------------------------------------------------*/
 function analyseDir(root = './specs') {
-  const recurse = (dir: string) => {
+  const walkDir = (dir: string) => {
     for (const entry of fs.readdirSync(dir)) {
       const full = path.join(dir, entry);
-      const stat = fs.statSync(full);
-      if (stat.isDirectory()) recurse(full);
-      else if (stat.isFile() && /\.spec\.(?:js|ts)$/.test(entry)) analyseFile(full);
+      const st   = fs.statSync(full);
+      if (st.isDirectory()) walkDir(full);
+      else if (st.isFile() && /\.spec\.(?:js|ts)$/.test(entry)) analyseFile(full);
     }
   };
-  recurse(root);
+  walkDir(root);
 
-  console.log('Playwright API Usage:\n' + JSON.stringify(Object.fromEntries(apiUsage), null, 2));
+  // pretty-print grouped result
+  const result: Record<string, Record<string, number>> = {};
+  for (const [cls, methods] of usage) {
+    result[cls] = Object.fromEntries([...methods.entries()].sort());
+  }
+  console.log('Playwright API Usage (grouped by type):\n' + JSON.stringify(result, null, 2));
 }
 
 analyseDir();

@@ -14,36 +14,27 @@ You should get an output, something like:
 
 ```
 Playwright API Usage:
+Playwright API Usage (grouped by type):
 {
-  "Page.goto": {
-    "count": 3
+  "Page": {
+    "getByRole": 2,
+    "goto": 3
   },
-  "MakeMatchers<void, Page, {}>.toHaveTitle": {
-    "count": 1
+  "MakeMatchers<void, Page, {}>": {
+    "toHaveTitle": 1,
+    "toHaveURL": 1
   },
-  "Locator.click": {
-    "count": 1
+  "Locator": {
+    "click": 1
   },
-  "Page.getByRole": {
-    "count": 2
+  "MakeMatchers<void, Locator, {}>": {
+    "toBeVisible": 1
   },
-  "MakeMatchers<void, Locator, {}>.toBeVisible": {
-    "count": 1
-  },
-  "TestType<PlaywrightTestArgs & PlaywrightTestOptions, PlaywrightWorkerArgs & PlaywrightWorkerOptions>.describe": {
-    "count": 2
-  },
-  "TestType<PlaywrightTestArgs & PlaywrightTestOptions, PlaywrightWorkerArgs & PlaywrightWorkerOptions>.beforeEach": {
-    "count": 1
-  },
-  "MakeMatchers<void, Page, {}>.toHaveURL": {
-    "count": 1
-  },
-  "TestType<PlaywrightTestArgs & PlaywrightTestOptions, PlaywrightWorkerArgs & PlaywrightWorkerOptions>.beforeAll": {
-    "count": 1
-  },
-  "TestType<PlaywrightTestArgs & PlaywrightTestOptions, PlaywrightWorkerArgs & PlaywrightWorkerOptions>.afterAll": {
-    "count": 1
+  "TestType<PlaywrightTestArgs & PlaywrightTestOptions, PlaywrightWorkerArgs & PlaywrightWorkerOptions>": {
+    "afterAll": 1,
+    "beforeAll": 1,
+    "beforeEach": 1,
+    "describe": 2
   }
 }
 ```
