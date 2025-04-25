@@ -13,9 +13,12 @@ node playwright_api_usage.js
 You should get an output, something like:
 
 ```
-Playwright API Usage:
 Playwright API Usage (grouped by type):
 {
+  "(functions)": {
+    "expect": 3,
+    "test": 6
+  },
   "Page": {
     "getByRole": 2,
     "goto": 3
@@ -35,6 +38,12 @@ Playwright API Usage (grouped by type):
     "beforeAll": 1,
     "beforeEach": 1,
     "describe": 2
+  },
+  "(properties)": {
+    "test.afterAll": 1,
+    "test.beforeAll": 1,
+    "test.beforeEach": 1,
+    "test.describe": 2
   }
 }
 ```
